@@ -16,3 +16,4 @@ docs/
 # lib
 lib/forge-std
 
+node_modules
