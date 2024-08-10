@@ -1,15 +1,14 @@
 [profile.default]
 src = 'src'
 out = 'out'
+libs = ["lib"]
 remappings = [
-    '@chainlink/contracts/=node_modules/@chainlink/contracts',
-    '@chainlink/contracts-ccip/=node_modules/@chainlink/contracts-ccip',
-    '@chainlink/local=node_modules/@chainlink/local',
-    '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/'
+    "@chainlink/contracts-ccip/=lib/ccip/contracts/",
 ]
+gas_reports = ["*"]
 solc = '0.8.20'
 evm_version = 'paris'
-libs = ["node_modules", "lib"]
+
 
 [rpc_endpoints]
 arbitrumSepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"
