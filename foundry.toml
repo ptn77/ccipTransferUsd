@@ -9,6 +9,7 @@ remappings = [
 ]
 solc = '0.8.20'
 evm_version = 'paris'
+libs = ["node_modules", "lib"]
 
 [rpc_endpoints]
 arbitrumSepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"
