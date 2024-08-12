@@ -105,7 +105,9 @@ contract TransferUSDCTest is Test {
 
          vm.recordLogs(); // Starts recording logs to capture events.
 
-        /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not sent message.
+        /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message only token.
+        //EOAs cannot implement the ccipReceive function. 
+        //The router contract checks if the recipient is an EOA and, if so, transfers the tokens directly to the recipient's address.
         transferUSDCContract.transferUsdc(
             chainSelector,
             bob,
