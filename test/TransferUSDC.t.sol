@@ -35,6 +35,7 @@ contract TransferUSDCTest is Test {
     Receiver public receiver;
     TransferUSDC public transferUSDCContract;
     BurnMintERC677 public usdcToken;
+    BurnMintERC677 public usdcTokenArbitrum;
     BurnMintERC677 public link;
     //IERC20 public link;
     //MockCCIPRouter public router;
@@ -133,6 +134,8 @@ contract TransferUSDCTest is Test {
         arbSepoliaNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid); 
         destChainSelector = arbSepoliaNetworkDetails.chainSelector;
         console.log("Arbitrum Sepolia Chain Selector:", destChainSelector);
+
+        usdcTokenArbitrum = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
 
         receiver = new Receiver(arbSepoliaNetworkDetails.routerAddress);
         console.log("Deployed Receiver.sol to Arbitrum Sepolia Fork: ", address(receiver));
@@ -298,9 +301,9 @@ contract TransferUSDCTest is Test {
         assertEq(vm.activeFork(), arbSepoliaFork);
         console.log("Arbitrum Sepolia Fork Chain ID:", block.chainid);
 
-        console.log("Bob balance after transfer: ", usdcToken.balanceOf(bob));
+        console.log("Bob balance after transfer: ", usdcTokenArbitrum.balanceOf(bob));
         //assertEq(usdcToken.balanceOf(alice), balanceOfAliceBefore - amountToSend);
-        assertEq(usdcToken.balanceOf(bob), balanceOfBobBefore + amountToSend);
+        assertEq(usdcTokenArbitrum.balanceOf(bob), balanceOfBobBefore + amountToSend);
     }
 
     /// @notice Test case for transferring 1 USDC and estimating gas usage.

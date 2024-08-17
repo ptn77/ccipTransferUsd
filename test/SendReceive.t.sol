@@ -54,10 +54,11 @@ contract SenderReceiverTest is Test {
     function sendMessage(uint256 iterations) private {
          encodeExtraArgs = new EncodeExtraArgs();
 
-        uint256 gasLimit = 200_000;
+        uint256 gasLimit = 500_000;
         bytes memory extraArgs = encodeExtraArgs.encode(gasLimit);
-        assertEq(extraArgs, hex"97a657c90000000000000000000000000000000000000000000000000000000000030d40"); // value taken from https://cll-devrel.gitbook.io/ccip-masterclass-3/ccip-masterclass/exercise-xnft#step-3-on-ethereum-sepolia-call-enablechain-function
-
+        console.logBytes(extraArgs);
+        //assertEq(extraArgs, hex"97a657c90000000000000000000000000000000000000000000000000000000000030d40"); // value taken from https://cll-devrel.gitbook.io/ccip-masterclass-3/ccip-masterclass/exercise-xnft#step-3-on-ethereum-sepolia-call-enablechain-function
+        assertEq(extraArgs, hex"97a657c9000000000000000000000000000000000000000000000000000000000007a120");
         vm.recordLogs(); // Starts recording logs to capture events.
         sender.sendMessagePayLINK(
             chainSelector,
