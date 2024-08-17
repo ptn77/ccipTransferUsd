@@ -56,7 +56,7 @@ contract TransferUSDC is OwnerIsCreator {
         uint64 _destinationChainSelector,
         address _receiver,
         uint256 _amount,
-        uint64 _gasLimit
+        bytes memory ccipExtraArgs
     )
         external
         onlyOwner
@@ -75,9 +75,7 @@ contract TransferUSDC is OwnerIsCreator {
             receiver: abi.encode(_receiver),
             data: "",
             tokenAmounts: tokenAmounts,
-            extraArgs: Client._argsToBytes(
-                Client.EVMExtraArgsV1({gasLimit: _gasLimit})
-            ),
+            extraArgs: ccipExtraArgs,
             feeToken: address(i_linkToken)
         });
 

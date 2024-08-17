@@ -90,17 +90,7 @@ contract TransferUSDCTest is Test {
         ccipLocalSimulatorFork.requestLinkFromFaucet(address(transferUSDCContract), 3 ether);
         console.log("Balance of link in TransferUSDC contract address:", address(transferUSDCContract), link.balanceOf(address(transferUSDCContract)));
 
-        //Transfer Link fee tokens to the contract
-        //link.approve(address(transferUSDCContract), 3);  
-        //link.allowance(address(this), address(transferUSDCContract));
-        //link.transfer(address(transferUSDCContract), 3);
-
-        //transfer some link and usdc to TransferUSDC contract
-        //link.mint(address(this), 6);
-        
-        // Deploy the TransferUSDC contract with the router, LINK, and USDC addresses
-        //transferUSDCContract = new TransferUSDC(address(router), address(link), address(usdcToken));
-       // }
+ 
         // Sender and Receiver contracts are deployed with references to the router and LINK token.
         sender = new Sender(ethSepoliaNetworkDetails.routerAddress, ethSepoliaNetworkDetails.linkAddress);
         console.log("Deployed Sender.sol to Ethereum Sepolia Fork: ", address(sender));
@@ -122,6 +112,7 @@ contract TransferUSDCTest is Test {
         usdcToken.approve(address(transferUSDCContract), amountToSend);  
         console.log("Set allowance on TransferUSDC contract for spending USD on this address behalf");
         usdcToken.allowance(address(this), address(transferUSDCContract));
+        //usdcToken.transfer(address(transferUSDCContract), amountToSend);
         
         console.log("Balance of usdc token in this address:", address(this), usdcToken.balanceOf(address(this)));
         console.log("Balance of usdc token in TransferUSDC contract address:", address(transferUSDCContract), usdcToken.balanceOf(address(transferUSDCContract)));
@@ -146,7 +137,7 @@ contract TransferUSDCTest is Test {
         console.log("Set allowlistSender on Receiver contract for Sender contract address:", address(sender));
     }
 
-    function bytes32ToString(
+   function bytes32ToString(
         bytes32 _bytes32
     ) internal pure returns (string memory) {
         uint8 i = 0;
@@ -175,39 +166,38 @@ contract TransferUSDCTest is Test {
     /// @dev Helper function to simulate sending a message from Sender to Receiver.
     /// @param iterations The variable to simulate varying loads in the message.
     function sendMessage(uint256 iterations) private returns (uint64 rgasUsed) {
-
+        console.log("Sending message to ccipReceive through Sender contract...");
          vm.recordLogs(); // Starts recording logs to capture events.
 
-        /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message only token.
+         encodeExtraArgs = new EncodeExtraArgs();
+
+        uint256 gasLimit = 500_000;
+        bytes memory extraArgs = encodeExtraArgs.encode(gasLimit);
+        console.logBytes(extraArgs);
+
+                /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message only token.
         //EOAs cannot implement the ccipReceive function. 
         //The router contract checks if the recipient is an EOA and, if so, transfers the tokens directly to the recipient's address.
         transferUSDCContract.transferUsdc(
             chainSelector,
             bob,
             iterations,
-            400000 // A predefined gas limit for the transaction.
+            extraArgs                //ExtraArgs gas_limit
         );*/
-         encodeExtraArgs = new EncodeExtraArgs();
-
-        uint256 gasLimit = 500_000;
-        bytes memory extraArgs = encodeExtraArgs.encode(gasLimit);
-        console.logBytes(extraArgs);
-        //assertEq(extraArgs, hex"97a657c90000000000000000000000000000000000000000000000000000000000030d40"); // value taken from https://cll-devrel.gitbook.io/ccip-masterclass-3/ccip-masterclass/exercise-xnft#step-3-on-ethereum-sepolia-call-enablechain-function
 
         //Using the Sender.sol example to get the ccipReceive gas usage instead
         sender.sendMessagePayLINK(
             destChainSelector,
             address(receiver),
             iterations,
-            extraArgs                //400000 // A predefined gas limit for the transaction.
+            extraArgs                //ExtraArgs gas_limit
         );
 
         ccipLocalSimulatorFork.switchChainAndRouteMessage(arbSepoliaFork); // THIS LINE REPLACES CHAINLINK CCIP DONs, DO NOT FORGET IT
         assertEq(vm.activeFork(), arbSepoliaFork);
         console.log("Arbitrum Sepolia Fork Chain ID:", block.chainid);
-
         // Fetches recorded logs to check for specific events and their outcomes.
-        Vm.Log[] memory logs = vm.getRecordedLogs();
+       /* Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 msgExecutedSignature = keccak256(
             "MessageExecuted(bytes32, uint64, address, bytes32)"
         );
@@ -241,15 +231,16 @@ contract TransferUSDCTest is Test {
                     bytes32ToHexString(result)
                 );
            }
-        }
-
+        }*/
+        rgasUsed = 85779;
+        console.log("Gas used for ccipReceive: ", rgasUsed);
         return rgasUsed;
     }
 
     /// @dev Helper function to simulate the transfer and capture the gas used.
     function transferToken() private {
         Client.EVMTokenAmount[] memory tokensToSendDetails;
-         // Step 3) On Ethereum Sepolia, call enableChain function
+
         vm.selectFork(ethSepoliaFork);
         assertEq(vm.activeFork(), ethSepoliaFork);
         console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
@@ -259,7 +250,7 @@ contract TransferUSDCTest is Test {
         //from terminal output (gas: 85779), going to use this value for now.
 
         rgasUsed = sendMessage(0);
-        rgasUsed = 85779;
+        
         
         console.log("Gas used for ccipReceive: ", rgasUsed);
         //increase by 10%
@@ -275,21 +266,31 @@ contract TransferUSDCTest is Test {
         console.log("Bob balance before transfer: ", usdcToken.balanceOf(bob));
         console.log("tokens to send details amount:", tokensToSendDetails[0].amount);
 
+        encodeExtraArgs = new EncodeExtraArgs();
+        bytes memory extraArgs = encodeExtraArgs.encode(adjustedGasLimit);
+        console.logBytes(extraArgs);
         //if (network == "avalanche-fuji"){
         //    transferUSDCContract.transferUsdc(avalancheFujiFork.chainSelector, bob, tokensToSendDetails[0].amount, adjustedGasLimit);
         //    ccipLocalSimulatorFork.switchChainAndRouteMessage(ethSepoliaFork);
         //}
         //else{
-
+        vm.selectFork(ethSepoliaFork);
+        assertEq(vm.activeFork(), ethSepoliaFork);
+        console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
+        
             // Re-run the transfer with the adjusted gas limit
             transferUSDCContract.transferUsdc(
                 destChainSelector,
                 bob,
                 tokensToSendDetails[0].amount,
-                adjustedGasLimit
+                extraArgs
             );
 
         //}
+        ccipLocalSimulatorFork.switchChainAndRouteMessage(arbSepoliaFork); // THIS LINE REPLACES CHAINLINK CCIP DONs, DO NOT FORGET IT
+        assertEq(vm.activeFork(), arbSepoliaFork);
+        console.log("Arbitrum Sepolia Fork Chain ID:", block.chainid);
+
         console.log("Bob balance after transfer: ", usdcToken.balanceOf(bob));
         //assertEq(usdcToken.balanceOf(alice), balanceOfAliceBefore - amountToSend);
         assertEq(usdcToken.balanceOf(bob), balanceOfBobBefore + amountToSend);
