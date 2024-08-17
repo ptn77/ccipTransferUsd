@@ -82,6 +82,7 @@ contract TransferUSDCTest is Test {
 
         console.log("Deployed TransferUSDC.sol to Ethereum Sepolia Fork");
         link = BurnMintERC677(ethSepoliaNetworkDetails.linkAddress);
+        
         console.log("Link address:", ethSepoliaNetworkDetails.linkAddress);
         console.log("usdcToken address:", address(usdcToken));
         console.log("Router address:", ethSepoliaNetworkDetails.routerAddress);
@@ -89,12 +90,18 @@ contract TransferUSDCTest is Test {
 
         ccipLocalSimulatorFork.requestLinkFromFaucet(address(transferUSDCContract), 3 ether);
         console.log("Balance of link in TransferUSDC contract address:", address(transferUSDCContract), link.balanceOf(address(transferUSDCContract)));
+        ccipLocalSimulatorFork.requestLinkFromFaucet(address(this), 3 ether);
+        console.log("Balance of link in this address:", address(this), link.balanceOf(address(this)));
 
  
         // Sender and Receiver contracts are deployed with references to the router and LINK token.
         sender = new Sender(ethSepoliaNetworkDetails.routerAddress, ethSepoliaNetworkDetails.linkAddress);
         console.log("Deployed Sender.sol to Ethereum Sepolia Fork: ", address(sender));
-
+        ccipLocalSimulatorFork.requestLinkFromFaucet(address(sender), 3 ether);
+        console.log("Balance of link in sender contract address:", address(sender), link.balanceOf(address(sender)));
+        //set link allowances
+        link.approve(address(sender), 47766485979214857);
+        link.allowance(address(this), address(sender));
         destChainSelector = 3478487238524512106;
         sender.allowlistDestinationChain(destChainSelector, true);
         //sender.allowlistDestinationChain(chainSelector, true);
@@ -232,7 +239,7 @@ contract TransferUSDCTest is Test {
                 );
            }
         }*/
-        rgasUsed = 85779;
+        rgasUsed = 398601;
         console.log("Gas used for ccipReceive: ", rgasUsed);
         return rgasUsed;
     }
@@ -277,7 +284,7 @@ contract TransferUSDCTest is Test {
         vm.selectFork(ethSepoliaFork);
         assertEq(vm.activeFork(), ethSepoliaFork);
         console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
-        
+
             // Re-run the transfer with the adjusted gas limit
             transferUSDCContract.transferUsdc(
                 destChainSelector,
