@@ -8,6 +8,7 @@ import {MockCCIPRouter} from "@chainlink/contracts-ccip/src/v0.8/ccip/test/mocks
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {Sender} from "../src/Sender.sol";
 import {Receiver} from "../src/Receiver.sol";
+import {EncodeExtraArgs} from "../script/EncodeExtraArgs.s.sol";
 
 /// @title A test suite for Sender and Receiver contracts to estimate ccipReceive gas usage.
 contract SenderReceiverTest is Test {
@@ -16,6 +17,7 @@ contract SenderReceiverTest is Test {
     Receiver public receiver;
     BurnMintERC677 public link;
     MockCCIPRouter public router;
+    EncodeExtraArgs encodeExtraArgs;
     // A specific chain selector for identifying the chain.
     uint64 public chainSelector = 16015286601757825753;
 
@@ -50,12 +52,18 @@ contract SenderReceiverTest is Test {
     /// @dev Helper function to simulate sending a message from Sender to Receiver.
     /// @param iterations The variable to simulate varying loads in the message.
     function sendMessage(uint256 iterations) private {
+         encodeExtraArgs = new EncodeExtraArgs();
+
+        uint256 gasLimit = 200_000;
+        bytes memory extraArgs = encodeExtraArgs.encode(gasLimit);
+        assertEq(extraArgs, hex"97a657c90000000000000000000000000000000000000000000000000000000000030d40"); // value taken from https://cll-devrel.gitbook.io/ccip-masterclass-3/ccip-masterclass/exercise-xnft#step-3-on-ethereum-sepolia-call-enablechain-function
+
         vm.recordLogs(); // Starts recording logs to capture events.
         sender.sendMessagePayLINK(
             chainSelector,
             address(receiver),
             iterations,
-            400000 // A predefined gas limit for the transaction.
+            extraArgs                //400000 // A predefined gas limit for the transaction.
         );
         // Fetches recorded logs to check for specific events and their outcomes.
         Vm.Log[] memory logs = vm.getRecordedLogs();

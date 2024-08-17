@@ -79,7 +79,7 @@ contract Sender is OwnerIsCreator {
         uint64 _destinationChainSelector,
         address _receiver,
         uint256 _iterations,
-        uint256 _gasLimit
+        bytes memory ccipExtraArgs
     )
         external
         onlyOwner
@@ -92,10 +92,11 @@ contract Sender is OwnerIsCreator {
             receiver: abi.encode(_receiver), // ABI-encoded receiver address
             data: abi.encode(_iterations), // ABI-encoded iterations
             tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array as no tokens are transferred
-            extraArgs: Client._argsToBytes(
+            extraArgs: //Client._argsToBytes(
                 // Additional arguments, setting gas limit
-                Client.EVMExtraArgsV1({gasLimit: _gasLimit})
-            ),
+                //Client.EVMExtraArgsV1({gasLimit: _gasLimit})
+            //),
+            ccipExtraArgs,
             // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
             feeToken: address(s_linkToken)
         });
