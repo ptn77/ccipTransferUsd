@@ -3,9 +3,7 @@ Day 3 Homework
 TransferUSDC.sol contract does not send messages, only Token.
 When the recipient is an EOA, the CCIP router contract on the destination chain handles the token transfer directly, as EOAs cannot implement the ccipReceive function. The router contract checks if the recipient is an EOA and, if so, transfers the tokens directly to the recipient's address.
 
-Not sure why the HW is asking for the gas consumption of ccipReceive function since we were testing using an EOA as the recipient. Added the Send and Receive contracts with ExtraArgs gas_limit set to 500_000 to run the SendReceive.t.sol test for the gas usages intead, but the "MessageExecuted(bytes32, uint64, address, bytes32)" did not match the vm logs for some reason. Took the minimum gas usage of [PASS] test_SendReceiveMin() (gas: 186797)
-Logs:
-  0x97a657c9000000000000000000000000000000000000000000000000000000000007a120 instead. 
+Not sure why the HW is asking for the gas consumption of ccipReceive function since we were testing using an EOA as the recipient. Added the Send and Receive contracts with ExtraArgs gas_limit set to 500_000 to run the SendReceive.t.sol test for the gas usages intead, but the "MessageExecuted(bytes32, uint64, address, bytes32)" did not match the vm logs for some reason. Took the minimum gas usage of [PASS] test_SendReceiveMin() (gas: 196896) instead. 
 Still need to figure out how to get token contract of the USDC on Eth Sepolia and Arb Sepolia forks for testing TransferUSDC.
 
 Token Pool Contract and ccipReceive (Is this correct for USDC tokens?)
