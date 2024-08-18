@@ -29,13 +29,19 @@ contract TransferUSDCTest is Test {
     Register.NetworkDetails avalancheFujiNetworkDetails;
     EncodeExtraArgs encodeExtraArgs;
     string network;
+    //USDC token address 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d from Arbitrum to Eth Sepolia
+    //USDC token address 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238 from Eth Sepolia to Arbitrum
+    address public usdcAddressEth = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+    address public usdcAddressArb = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
 
 
     Sender public sender;
     Receiver public receiver;
     TransferUSDC public transferUSDCContract;
-    BurnMintERC677 public usdcToken;
-    BurnMintERC677 public usdcTokenArbitrum;
+    //BurnMintERC677 public usdcToken;
+    BurnMintERC677Helper public usdcToken;
+    //BurnMintERC677 public usdcTokenArbitrum;
+    BurnMintERC677Helper public usdcTokenArbitrum;
     BurnMintERC677 public link;
     //IERC20 public link;
     //MockCCIPRouter public router;
@@ -77,7 +83,9 @@ contract TransferUSDCTest is Test {
         //chainSelector = 16015286601757825753;
 
         chainSelector = ethSepoliaNetworkDetails.chainSelector;
-        usdcToken = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
+        //usdcToken = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
+        //usdcToken = BurnMintERC677(usdcAddressEth);
+        usdcToken = BurnMintERC677Helper(usdcAddressEth);
         // Deploy the TransferUSDC contract with the router, LINK, and USDC addresses
         transferUSDCContract = new TransferUSDC(ethSepoliaNetworkDetails.routerAddress, ethSepoliaNetworkDetails.linkAddress, address(usdcToken));
 
@@ -114,9 +122,10 @@ contract TransferUSDCTest is Test {
         console.log("Set allowlistDestinationChain on transferUSDC contract for Arbitrum Sepolia chain selector:", destChainSelector);
 
 
-        usdcToken.grantMintRole(address(this));
-        usdcToken.mint(address(this), amountToSend*2);
-        console.log("minted usdc");
+        //usdcToken.grantMintRole(address(this));
+        //usdcToken.mint(address(this), amountToSend*2);
+        //console.log("minted usdc");
+        usdcToken.drip(address(this));
         usdcToken.approve(address(transferUSDCContract), amountToSend);  
         console.log("Set allowance on TransferUSDC contract for spending USD on this address behalf");
         usdcToken.allowance(address(this), address(transferUSDCContract));
@@ -135,8 +144,9 @@ contract TransferUSDCTest is Test {
         destChainSelector = arbSepoliaNetworkDetails.chainSelector;
         console.log("Arbitrum Sepolia Chain Selector:", destChainSelector);
 
-        usdcTokenArbitrum = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
-
+        //usdcTokenArbitrum = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
+        //usdcTokenArbitrum = BurnMintERC677(usdcAddressArb);
+        usdcTokenArbitrum = BurnMintERC677Helper(usdcAddressArb);
         receiver = new Receiver(arbSepoliaNetworkDetails.routerAddress);
         console.log("Deployed Receiver.sol to Arbitrum Sepolia Fork: ", address(receiver));
          
