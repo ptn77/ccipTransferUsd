@@ -21,9 +21,8 @@ import {EncodeExtraArgs} from "../script/EncodeExtraArgs.s.sol";
 contract TransferUSDCTest is Test {
     //using SafeERC20 for IERC20;
     CCIPLocalSimulatorFork public ccipLocalSimulatorFork;
-    uint256 ethSepoliaFork;
-    uint256 avalancheFujiFork;
-    uint256 arbSepoliaFork;
+    uint256 sourceFork;
+    uint256 detinationFork;
     Register.NetworkDetails ethSepoliaNetworkDetails;
     Register.NetworkDetails arbSepoliaNetworkDetails;
     Register.NetworkDetails avalancheFujiNetworkDetails;
@@ -65,26 +64,25 @@ contract TransferUSDCTest is Test {
     //uint256 amountToSend; 
     uint256 balanceOfBobBefore;
 
-
     /// @dev Sets up the testing environment by deploying necessary contracts and configuring their states.
     function setUp() public {
         // Initialize test addresses
         alice = makeAddr("alice");
         bob = makeAddr("bob");
-         
+        string memory SOURCE_NETWORK = vm.envString("SOURCE_NETWORK");
+        string memory DEST_NETWORK = vm.envString("DEST_NETWORK");
 
-
-        string memory ETHEREUM_SEPOLIA_RPC_URL = vm.envString("ETHEREUM_SEPOLIA_RPC_URL");
-        string memory ARBITRUM_SEPOLIA_RPC_URL = vm.envString("ARBITRUM_SEPOLIA_RPC_URL");
-        ethSepoliaFork = vm.createSelectFork(ETHEREUM_SEPOLIA_RPC_URL);
-        arbSepoliaFork = vm.createFork(ARBITRUM_SEPOLIA_RPC_URL);
+        string memory SOURCE_RPC_URL = vm.envString(SOURCE_NETWORK);
+        string memory DESTINATION_RPC_URL = vm.envString(DEST_NETWORK);
+        sourceFork = vm.createSelectFork(SOURCE_RPC_URL);
+        detinationFork = vm.createFork(DESTINATION_RPC_URL);
 
         ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
         vm.makePersistent(address(ccipLocalSimulatorFork));
 
         // Step 1) Deploy TransferUSDC.sol to Ethereum Sepolia
-        assertEq(vm.activeFork(), ethSepoliaFork);
-        console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
+        assertEq(vm.activeFork(), sourceFork);
+        console.log("source Fork Chain ID:", block.chainid);
 
         ethSepoliaNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid); // we are currently on Ethereum Sepolia Fork
         console.log("Ethereum Sepolia Fork Chain Selector:", ethSepoliaNetworkDetails.chainSelector);
@@ -154,9 +152,9 @@ contract TransferUSDCTest is Test {
         transferUSDCContract.allowlistDestinationChain(destChainSelector, true);
 
         // On Arbitrum Sepolia, call allowlistDestinationChain function
-        vm.selectFork(arbSepoliaFork);
-        assertEq(vm.activeFork(), arbSepoliaFork);
-        console.log("Select Arbitrum Sepolia Fork Chain ID:", block.chainid);
+        vm.selectFork(detinationFork);
+        assertEq(vm.activeFork(), detinationFork);
+        console.log("Select destination Fork Chain ID:", block.chainid);
         
         arbSepoliaNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid); 
         destChainSelector = arbSepoliaNetworkDetails.chainSelector;
@@ -239,9 +237,9 @@ contract TransferUSDCTest is Test {
             extraArgs                //ExtraArgs gas_limit
         );
 
-        ccipLocalSimulatorFork.switchChainAndRouteMessage(arbSepoliaFork); // THIS LINE REPLACES CHAINLINK CCIP DONs, DO NOT FORGET IT
-        assertEq(vm.activeFork(), arbSepoliaFork);
-        console.log("Arbitrum Sepolia Fork Chain ID:", block.chainid);
+        ccipLocalSimulatorFork.switchChainAndRouteMessage(detinationFork); // THIS LINE REPLACES CHAINLINK CCIP DONs, DO NOT FORGET IT
+        assertEq(vm.activeFork(), detinationFork);
+        console.log("Destination Fork Chain ID:", block.chainid);
         // Fetches recorded logs to check for specific events and their outcomes.
        /* Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 msgExecutedSignature = keccak256(
@@ -277,7 +275,7 @@ contract TransferUSDCTest is Test {
         )
     {
         
-        vm.selectFork(ethSepoliaFork);
+        vm.selectFork(sourceFork);
         //set link allowances
         assertEq(chainSelector, chainIdEthereumSepolia); //16015286601757825753); // check that the source chain is set to Ethereum Sepolia
         assertEq(destChainSelector, chainIdArbitrumSepolia);  //3478487238524512106); // check that the destination chain is set to Arbitrum Sepolia
@@ -298,8 +296,8 @@ contract TransferUSDCTest is Test {
         console.log("Gas used for ccipReceive: ", rgasUsed);
 
         //After calling sendMessage to get the ccipReceive gas used, set the fork back to Ethereum Sepolia
-        vm.selectFork(ethSepoliaFork);
-        assertEq(vm.activeFork(), ethSepoliaFork);
+        vm.selectFork(sourceFork);
+        assertEq(vm.activeFork(), sourceFork);
         console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
         //increase by 10%
         uint64 adjustedGasLimit = rgasUsed + (rgasUsed * 10) / 100;
@@ -330,12 +328,12 @@ contract TransferUSDCTest is Test {
 
         //if (network == "avalanche-fuji"){
         //    transferUSDCContract.transferUsdc(avalancheFujiFork.chainSelector, bob, tokensToSendDetails[0].amount, adjustedGasLimit);
-        //    ccipLocalSimulatorFork.switchChainAndRouteMessage(ethSepoliaFork);
+        //    ccipLocalSimulatorFork.switchChainAndRouteMessage(sourceFork);
         //}
         //else{
 
-        vm.selectFork(ethSepoliaFork);
-        assertEq(vm.activeFork(), ethSepoliaFork);
+        vm.selectFork(sourceFork);
+        assertEq(vm.activeFork(), sourceFork);
         console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
 
             // Re-run the transfer with the adjusted gas limit
@@ -347,9 +345,9 @@ contract TransferUSDCTest is Test {
             );
 
         //}
-        ccipLocalSimulatorFork.switchChainAndRouteMessage(arbSepoliaFork); // THIS LINE REPLACES CHAINLINK CCIP DONs, DO NOT FORGET IT
-        assertEq(vm.activeFork(), arbSepoliaFork);
-        console.log("Arbitrum Sepolia Fork Chain ID:", block.chainid);
+        ccipLocalSimulatorFork.switchChainAndRouteMessage(detinationFork); // THIS LINE REPLACES CHAINLINK CCIP DONs, DO NOT FORGET IT
+        assertEq(vm.activeFork(), detinationFork);
+        console.log("Desstination Fork Chain ID:", block.chainid);
 
         console.log("Bob balance after transfer: ", destToken.balanceOf(bob));
         assertEq(destToken.balanceOf(bob), balanceOfBobBefore + amountToSend);
