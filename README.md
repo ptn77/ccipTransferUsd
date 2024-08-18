@@ -8,4 +8,10 @@ Logs:
   0x97a657c9000000000000000000000000000000000000000000000000000000000007a120 instead. 
 Still need to figure out how to get token contract of the USDC on Eth Sepolia and Arb Sepolia forks for testing TransferUSDC.
 
+Token Pool Contract and ccipReceive (Is this correct for USDC tokens?)
+In this process:
+
+The token pool contract on the destination chain will typically have a ccipReceive function or an equivalent function that processes the message received via CCIP. This function handles the minting of new tokens on the destination chain based on the information passed from the source chain.
+The ccipReceive function or its equivalent ensures that the cross-chain transfer is completed correctly and that the recipient receives the minted tokens.
+
 Following the https://docs.chain.link/ccip/tutorials/ccipreceive-gaslimit guide measure the gas consumption of the ccipReceive function. Once you have the number, increase it by 10% and provide as gasLimit parameter of the transferUsdc function instead of the currently hard-coded 500.000 

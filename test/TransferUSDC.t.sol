@@ -13,7 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {TransferUSDC} from "../src/TransferUSDC.sol";
 import {Sender} from "../src/Sender.sol";
 import {Receiver} from "../src/Receiver.sol";
-import {Helper} from "../script/Helper.sol";
+//import {Helper} from "../script/Helper.sol";
 import {EncodeExtraArgs} from "../script/EncodeExtraArgs.s.sol";
 //import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -29,11 +29,16 @@ contract TransferUSDCTest is Test {
     Register.NetworkDetails avalancheFujiNetworkDetails;
     EncodeExtraArgs encodeExtraArgs;
     string network;
-    //USDC token address 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d from Arbitrum to Eth Sepolia
-    //USDC token address 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238 from Eth Sepolia to Arbitrum
-    address public usdcAddressEth = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    address public usdcAddressArb = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
-
+    //USDC token address 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d from Arbitrum. This has 1  	CCIP-BnM token??
+    //USDC Token contract https://sepolia-explorer.arbitrum.io/address/0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d
+    //USDC token address 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238 from Eth Sepolia FiatTokenProxy
+    //Confirmed there is USDC controct on Eth Sepolia https://sepolia.etherscan.io/address/0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+    address constant usdcEthereumSepolia = 
+        0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+    address constant usdcArbitrumSepolia =
+        0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d; //??Not sure if this is correct
+    uint64 constant chainIdArbitrumSepolia = 3478487238524512106;
+    uint64 constant chainIdEthereumSepolia = 16015286601757825753;
 
     Sender public sender;
     Receiver public receiver;
@@ -81,46 +86,61 @@ contract TransferUSDCTest is Test {
             16015286601757825753,
             "Sanity check: Ethereum Sepolia chain selector should be 16015286601757825753"
         );
-        //chainSelector = 16015286601757825753;
 
         chainSelector = ethSepoliaNetworkDetails.chainSelector;
+        destChainSelector = chainIdArbitrumSepolia;
         //usdcToken = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
-        //usdcToken = BurnMintERC677(usdcAddressEth);
-        usdcToken = BurnMintERC677Helper(usdcAddressEth);
-        // Deploy the TransferUSDC contract with the router, LINK, and USDC addresses
+        //usdcToken = BurnMintERC677(usdcEthereumSepolia);
+
+        //using the predefined USDC address from forked chain for Eth Sepolia instead of deploying new token contract
+        //using the BurnMintERC677Helper for the Drip function
+        usdcToken = BurnMintERC677Helper(usdcEthereumSepolia);
+        // Deploy the TransferUSDC contract with the router, LINK, and USDC addresses on Ethereum Sepolia
         transferUSDCContract = new TransferUSDC(ethSepoliaNetworkDetails.routerAddress, ethSepoliaNetworkDetails.linkAddress, address(usdcToken));
 
         console.log("Deployed TransferUSDC.sol to Ethereum Sepolia Fork");
+
         link = BurnMintERC677(ethSepoliaNetworkDetails.linkAddress);
-        
-        console.log("Link address:", ethSepoliaNetworkDetails.linkAddress);
-        console.log("usdcToken address:", address(usdcToken));
-        console.log("Router address:", ethSepoliaNetworkDetails.routerAddress);
 
-
-        ccipLocalSimulatorFork.requestLinkFromFaucet(address(transferUSDCContract), 3 ether);
-        console.log("Balance of link in TransferUSDC contract address:", address(transferUSDCContract), link.balanceOf(address(transferUSDCContract)));
-        ccipLocalSimulatorFork.requestLinkFromFaucet(address(this), 3 ether);
-        console.log("Balance of link in this address:", address(this), link.balanceOf(address(this)));
-
- 
         // Sender and Receiver contracts are deployed with references to the router and LINK token.
+        //Sender will be on Ethereum Sepolia
         sender = new Sender(ethSepoliaNetworkDetails.routerAddress, ethSepoliaNetworkDetails.linkAddress);
         console.log("Deployed Sender.sol to Ethereum Sepolia Fork: ", address(sender));
+
+        //Since there is a requestLinkFromFaucet method on the ccipLocalSimulatorFort, we can send LINK to the sender contract and TransferUSDC contract address 
         ccipLocalSimulatorFork.requestLinkFromFaucet(address(sender), 3 ether);
         console.log("Balance of link in sender contract address:", address(sender), link.balanceOf(address(sender)));
-        //set link allowances
+
+        //The sender contract will approve the router to spend 47766485979214857 LINK on the sender contract's behalf. No need to do that here
+        //but do we need to approve for the Sender contract on ETH Sepolia to spend LINK on this address' behalf for fees and gas?
+        //When this is commented out, we get an allowance exceeded error? 
         link.approve(address(sender), 47766485979214857);
-        link.allowance(address(this), address(sender));
-        destChainSelector = 3478487238524512106;
+
+        assertEq(link.allowance(address(this), address(sender)), 47766485979214857, "Sanity check: Link allowance should be 47766485979214857");
+
+        // We should only need to set the sender.allowlistDestinationChain(chainSelector, true);
         sender.allowlistDestinationChain(destChainSelector, true);
-        //sender.allowlistDestinationChain(chainSelector, true);
-        console.log("Set allowlistDestinationChain on Sender contract for Arbitrum Sepolia chain selector:", destChainSelector);
+
+        console.log("Link address on Ethereum Sepolia:", ethSepoliaNetworkDetails.linkAddress);
+        console.log("usdcToken address on Ethereum Sepolia:", address(usdcToken));
+        console.log("Router address on Ethereum Sepolia:", ethSepoliaNetworkDetails.routerAddress);
         
-        // Configure the transferUSDCContract contract to allow transactions to the specified chain
+        //Request LINK for transferUSDCContract on Ethereum Sepolia
+        ccipLocalSimulatorFork.requestLinkFromFaucet(address(transferUSDCContract), 3 ether);
+        console.log("Balance of link on ethereum sepolia TransferUSDC contract address:", address(transferUSDCContract), link.balanceOf(address(transferUSDCContract)));
+        //Do we need LINK in our current "this" address? Comment out for now
+        //ccipLocalSimulatorFork.requestLinkFromFaucet(address(this), 3 ether);
+        //console.log("Balance of link on ethereum sepolia in this address:", address(this), link.balanceOf(address(this)));
+        
+        //We should not need to set the allowance for the router on eth sepolia since the TransferUSDC contract will approve the router
+        //console.log("Set allowance on ethereum sepolia router %s for spending USDC = %d.", ethSepoliaNetworkDetails.routerAddress, amountToSend);
+        //Drip some USDC for the TransferUSDC contract? or for this address and set approve for the TransferUSDC contract to spend on "this" address behalf 
+        //in prepareScenario() function 
+        //usdcToken.approve(ethSepoliaNetworkDetails.routerAddress, amountToSend);
+        //usdcToken.allowance(address(this), ethSepoliaNetworkDetails.routerAddress);
+        
+        // Configure the transferUSDCContract contract to allow transactions to be sent to Arbitrum Sepolia
         transferUSDCContract.allowlistDestinationChain(destChainSelector, true);
-        //transferUSDCContract.allowlistDestinationChain(chainSelector, true);
-        console.log("Set allowlistDestinationChain on transferUSDC contract for Arbitrum Sepolia chain selector:", destChainSelector);
 
         // On Arbitrum Sepolia, call allowlistDestinationChain function
         vm.selectFork(arbSepoliaFork);
@@ -129,11 +149,11 @@ contract TransferUSDCTest is Test {
         
         arbSepoliaNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid); 
         destChainSelector = arbSepoliaNetworkDetails.chainSelector;
-        console.log("Arbitrum Sepolia Chain Selector:", destChainSelector);
+        assertEq(destChainSelector, chainIdArbitrumSepolia); //Sanity check: Arbitrum Sepolia chain selector should be (uint64 = 3478487238524512106;)
 
         //usdcTokenArbitrum = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
-        //usdcTokenArbitrum = BurnMintERC677(usdcAddressArb);
-        usdcTokenArbitrum = BurnMintERC677Helper(usdcAddressArb);
+        //usdcTokenArbitrum = BurnMintERC677(usdcArbitrumSepolia);
+        usdcTokenArbitrum = BurnMintERC677Helper(usdcArbitrumSepolia);
 
         balanceOfBobBefore = usdcTokenArbitrum.balanceOf(bob);
         console.log("Bob balance before transfer: ", balanceOfBobBefore);
@@ -142,10 +162,12 @@ contract TransferUSDCTest is Test {
         console.log("Deployed Receiver.sol to Arbitrum Sepolia Fork: ", address(receiver));
          
         // Configuring allowlist settings for testing cross-chain interactions.
+        //allow ethereum sepolia chain selector on receiver contract
         receiver.allowlistSourceChain(chainSelector, true);
         console.log("Set allowlistSourceChain on Receiver contract for Ethereum Sepolia chain selector:", chainSelector);
+        //allow ethereum sepolia sender contract to send to receiver on Arbitrum Sepolia
         receiver.allowlistSender(address(sender), true);
-        console.log("Set allowlistSender on Receiver contract for Sender contract address:", address(sender));
+        console.log("Set allowlistSender on on Arbitrum Sepolia Receiver contract for Sender contract Address:", address(sender));
     }
 
    function bytes32ToString(
@@ -177,7 +199,7 @@ contract TransferUSDCTest is Test {
     /// @dev Helper function to simulate sending a message from Sender to Receiver.
     /// @param iterations The variable to simulate varying loads in the message.
     function sendMessage(uint256 iterations, bytes memory extraArgs) private returns (uint64 rgasUsed) {
-        console.log("Sending message to ccipReceive through Sender contract...");
+        console.log("Sending message to ccipReceive through Sender contract to estimate gas...");
         
         vm.recordLogs(); // Starts recording logs to capture events.
 
@@ -187,7 +209,7 @@ contract TransferUSDCTest is Test {
         extraArgs = encodeExtraArgs.encode(gasLimit);
         console.logBytes(extraArgs);
 
-                /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message only token.
+        /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message only token.
         //EOAs cannot implement the ccipReceive function. 
         //The router contract checks if the recipient is an EOA and, if so, transfers the tokens directly to the recipient's address.
         transferUSDCContract.transferUsdc(
@@ -242,13 +264,23 @@ contract TransferUSDCTest is Test {
             bytes memory extraArgs
         )
     {
+        
         vm.selectFork(ethSepoliaFork);
+        //set link allowances
+        assertEq(chainSelector, chainIdEthereumSepolia); //16015286601757825753); // check that the source chain is set to Ethereum Sepolia
+        assertEq(destChainSelector, chainIdArbitrumSepolia);  //3478487238524512106); // check that the destination chain is set to Arbitrum Sepolia
+        
         vm.startPrank(address(this));
         usdcToken.drip(address(this));
         amountToSend = 100;
 
-         uint64 rgasUsed;
+        console.log("Balance of usdc token on ethereum sepolia in this address:", address(this), usdcToken.balanceOf(address(this)));
+        console.log("Balance of usdc token on ethereum sepolia in TransferUSDC contract address:", address(transferUSDCContract), usdcToken.balanceOf(address(transferUSDCContract)));
+        //Approve the allowance for the transferUSDC contract to spend usdc tokens on "this" address' behalf
+        usdcToken.approve(address(transferUSDCContract), amountToSend);
+        assertEq(usdcToken.allowance(address(this), address(transferUSDCContract)), amountToSend);
 
+         uint64 rgasUsed;
         rgasUsed = sendMessage(0, extraArgs);
         
         console.log("Gas used for ccipReceive: ", rgasUsed);
@@ -272,12 +304,6 @@ contract TransferUSDCTest is Test {
         extraArgs = encodeExtraArgs.encode(adjustedGasLimit);
         console.logBytes(extraArgs);
 
-        usdcToken.approve(ethSepoliaNetworkDetails.routerAddress, amountToSend);
-        usdcToken.allowance(address(this), ethSepoliaNetworkDetails.routerAddress);
-        console.log("Set allowance on source router for spending USD on this address behalf");
-        console.log("Balance of usdc token in this address:", address(this), usdcToken.balanceOf(address(this)));
-        console.log("Balance of usdc token in TransferUSDC contract address:", address(transferUSDCContract), usdcToken.balanceOf(address(transferUSDCContract)));
-        
         vm.stopPrank();
     }
 

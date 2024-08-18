@@ -25,7 +25,7 @@ contract Helper {
         LINK
     }
 
-    // Chain IDs
+    // Chain Selector IDs
     uint64 constant chainIdEthereumSepolia = 16015286601757825753;
     uint64 constant chainIdAvalancheFuji = 14767482510784806043;
     uint64 constant chainIdArbitrumSepolia = 3478487238524512106;
@@ -163,6 +163,10 @@ contract Helper {
         0x5fd84259d66Cd46123540766Be93DFE6D43130D7;
     address constant usdcBaseSepolia =
         0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+    address constant usdcEthereumSepolia = 
+        0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+    address constant usdcArbitrumSepolia =
+        0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d; //??Not sure if this is correct
 
     // GHO Addresses
     address constant ghoEthereumSepolia =
