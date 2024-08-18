@@ -50,7 +50,8 @@ contract TransferUSDCTest is Test {
     address public bob;
     uint64 public chainSelector;
     uint64 public destChainSelector;
-    uint256 amountToSend; 
+    //uint256 amountToSend; 
+    uint256 balanceOfBobBefore;
 
 
     /// @dev Sets up the testing environment by deploying necessary contracts and configuring their states.
@@ -58,7 +59,7 @@ contract TransferUSDCTest is Test {
         // Initialize test addresses
         alice = makeAddr("alice");
         bob = makeAddr("bob");
-        amountToSend = 1000000; // 1 USDC (since USDC has 6 decimals)
+         
 
 
         string memory ETHEREUM_SEPOLIA_RPC_URL = vm.envString("ETHEREUM_SEPOLIA_RPC_URL");
@@ -121,20 +122,6 @@ contract TransferUSDCTest is Test {
         //transferUSDCContract.allowlistDestinationChain(chainSelector, true);
         console.log("Set allowlistDestinationChain on transferUSDC contract for Arbitrum Sepolia chain selector:", destChainSelector);
 
-
-        //usdcToken.grantMintRole(address(this));
-        //usdcToken.mint(address(this), amountToSend*2);
-        //console.log("minted usdc");
-        usdcToken.drip(address(this));
-        usdcToken.approve(address(transferUSDCContract), amountToSend);  
-        console.log("Set allowance on TransferUSDC contract for spending USD on this address behalf");
-        usdcToken.allowance(address(this), address(transferUSDCContract));
-        //usdcToken.transfer(address(transferUSDCContract), amountToSend);
-        
-        console.log("Balance of usdc token in this address:", address(this), usdcToken.balanceOf(address(this)));
-        console.log("Balance of usdc token in TransferUSDC contract address:", address(transferUSDCContract), usdcToken.balanceOf(address(transferUSDCContract)));
-        
-
         // On Arbitrum Sepolia, call allowlistDestinationChain function
         vm.selectFork(arbSepoliaFork);
         assertEq(vm.activeFork(), arbSepoliaFork);
@@ -147,6 +134,10 @@ contract TransferUSDCTest is Test {
         //usdcTokenArbitrum = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
         //usdcTokenArbitrum = BurnMintERC677(usdcAddressArb);
         usdcTokenArbitrum = BurnMintERC677Helper(usdcAddressArb);
+
+        balanceOfBobBefore = usdcTokenArbitrum.balanceOf(bob);
+        console.log("Bob balance before transfer: ", balanceOfBobBefore);
+
         receiver = new Receiver(arbSepoliaNetworkDetails.routerAddress);
         console.log("Deployed Receiver.sol to Arbitrum Sepolia Fork: ", address(receiver));
          
@@ -185,14 +176,15 @@ contract TransferUSDCTest is Test {
 
     /// @dev Helper function to simulate sending a message from Sender to Receiver.
     /// @param iterations The variable to simulate varying loads in the message.
-    function sendMessage(uint256 iterations) private returns (uint64 rgasUsed) {
+    function sendMessage(uint256 iterations, bytes memory extraArgs) private returns (uint64 rgasUsed) {
         console.log("Sending message to ccipReceive through Sender contract...");
-         vm.recordLogs(); // Starts recording logs to capture events.
+        
+        vm.recordLogs(); // Starts recording logs to capture events.
 
-         encodeExtraArgs = new EncodeExtraArgs();
+        encodeExtraArgs = new EncodeExtraArgs();
 
         uint256 gasLimit = 500_000;
-        bytes memory extraArgs = encodeExtraArgs.encode(gasLimit);
+        extraArgs = encodeExtraArgs.encode(gasLimit);
         console.logBytes(extraArgs);
 
                 /*//Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message only token.
@@ -223,23 +215,8 @@ contract TransferUSDCTest is Test {
         );
 
         for (uint i = 0; i < logs.length; i++) {
-            //This is not findng the signature match for some reason.
-            //The logs do show 4 arguments in function signature
-            //    │   │   ├─ emit MessageExecuted(messageId: 0x251a62bce4c708205f829e9855a0291cc6fefddd0dfa6b61c75de91d5b7f0a9f, sourceChainSelector: 16015286601757825753 [1.601e19], offRamp: Sender: [0xc7183455a4C133Ae270771860664b6B7ec320bB1], calldataHash: 0xe0935c7962a29d672d0b3927274abfa1fb9decb5d604fe04c87f775278b2e3d6)
-           //Perhaps the MockCCIPRouter is outdated version? 
-           //event MessageExecuted(bytes32 messageId, uint64 sourceChainSelector, address offRamp, bytes32 calldataHash);
-           //log length = 6, does this correspond to the 6 emit in the logs?
-           //emit Approval
-           //emit Transfer
-           //emit Approval
-           //emit MessageReceived
-           //emit MessageExecuted <-- index 4 string version of logs[4].topics[0]: ��}�>��WV�7D,e��OƎ~����i=[�0�
-           //emit MessageSent
-           //msgExecutedSig: f�C8��k��'�-
-            //console.log("string version of msgExecutedSig:", bytes32ToString(msgExecutedSignature));
-            //console.log("string version of logs[%d].topics[0]:",i,bytes32ToString(logs[i].topics[0]));
-            console.log("msgExecutedSignature: %s", bytes32ToHexString(msgExecutedSignature));
-            console.log("logs[%d].topics[0]: %s", i, bytes32ToHexString(logs[i].topics[0]));
+            //emit MessageExecuted(messageId: 0xaf12d7454f7430341fccf12f5baa51b5cf278c056d9b1ada582db0c15365f031, sourceChainSelector: 16015286601757825753 [1.601e19], offRamp: 0x1c71f141b4630EBE52d6aF4894812960abE207eB, calldataHash: 0x12d7022aefa4ae80dfde4473ef9700ca401e9daa3478a6b806a9905bbdfe1f9b)
+    │   │   //│   └─ ← [Return] true, 0x, 5190
            //if (logs[i].topics[0] == msgExecutedSignature) {
            if(i == 4) {
                (bytes32 messageId,,,bytes32 result) = abi.decode(
@@ -257,43 +234,68 @@ contract TransferUSDCTest is Test {
         return rgasUsed;
     }
 
-    /// @dev Helper function to simulate the transfer and capture the gas used.
-    function transferToken() private {
-        Client.EVMTokenAmount[] memory tokensToSendDetails;
+     function prepareScenario()
+        public
+        returns (
+            Client.EVMTokenAmount[] memory tokensToSendDetails,
+            uint256 amountToSend,
+            bytes memory extraArgs
+        )
+    {
+        vm.selectFork(ethSepoliaFork);
+        vm.startPrank(address(this));
+        usdcToken.drip(address(this));
+        amountToSend = 100;
 
+         uint64 rgasUsed;
+
+        rgasUsed = sendMessage(0, extraArgs);
+        
+        console.log("Gas used for ccipReceive: ", rgasUsed);
+
+        //After calling sendMessage to get the ccipReceive gas used, set the fork back to Ethereum Sepolia
         vm.selectFork(ethSepoliaFork);
         assertEq(vm.activeFork(), ethSepoliaFork);
         console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
-
-        uint64 rgasUsed;
-        //Not sure why SendMessage is not matching the MessageExecuted signature, but
-        //from terminal output (gas: 85779), going to use this value for now.
-
-        rgasUsed = sendMessage(0);
-        
-        
-        console.log("Gas used for ccipReceive: ", rgasUsed);
         //increase by 10%
         uint64 adjustedGasLimit = rgasUsed + (rgasUsed * 10) / 100;
 
         console.log("Adjusted Gas Limit: %d", adjustedGasLimit);
-                    tokensToSendDetails = new Client.EVMTokenAmount[](1);
+        tokensToSendDetails = new Client.EVMTokenAmount[](1);
         Client.EVMTokenAmount memory tokenToSendDetails =
                 Client.EVMTokenAmount({token: address(usdcToken), amount: amountToSend});
         tokensToSendDetails[0] = tokenToSendDetails;
 
-        uint256 balanceOfBobBefore = usdcToken.balanceOf(bob);
-        console.log("Bob balance before transfer: ", usdcToken.balanceOf(bob));
         console.log("tokens to send details amount:", tokensToSendDetails[0].amount);
 
         encodeExtraArgs = new EncodeExtraArgs();
-        bytes memory extraArgs = encodeExtraArgs.encode(adjustedGasLimit);
+        extraArgs = encodeExtraArgs.encode(adjustedGasLimit);
         console.logBytes(extraArgs);
+
+        usdcToken.approve(ethSepoliaNetworkDetails.routerAddress, amountToSend);
+        usdcToken.allowance(address(this), ethSepoliaNetworkDetails.routerAddress);
+        console.log("Set allowance on source router for spending USD on this address behalf");
+        console.log("Balance of usdc token in this address:", address(this), usdcToken.balanceOf(address(this)));
+        console.log("Balance of usdc token in TransferUSDC contract address:", address(transferUSDCContract), usdcToken.balanceOf(address(transferUSDCContract)));
+        
+        vm.stopPrank();
+    }
+
+    /// @dev Helper function to simulate the transfer and capture the gas used.
+    function transferToken() public {
+        (
+            Client.EVMTokenAmount[] memory tokensToSendDetails,
+            uint256 amountToSend,
+            bytes memory extraArgs
+        ) = prepareScenario();
+
+
         //if (network == "avalanche-fuji"){
         //    transferUSDCContract.transferUsdc(avalancheFujiFork.chainSelector, bob, tokensToSendDetails[0].amount, adjustedGasLimit);
         //    ccipLocalSimulatorFork.switchChainAndRouteMessage(ethSepoliaFork);
         //}
         //else{
+
         vm.selectFork(ethSepoliaFork);
         assertEq(vm.activeFork(), ethSepoliaFork);
         console.log("Ethereum Sepolia Fork Chain ID:", block.chainid);
