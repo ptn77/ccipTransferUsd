@@ -38,8 +38,6 @@ Logs:
 
 Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 8.48ms (5.95ms CPU time)
 
-Ran 1 test for test/TransferUSDC.t.sol:TransferUSDCTest
-[FAIL. Reason: revert: ERC20: insufficient allowance] test_SendReceive1USDC() (gas: 730585)
 Logs:
   source Fork Chain ID: 11155111
   source Fork Chain Selector: 16015286601757825753
