@@ -36,6 +36,19 @@ contract SenderReceiverTest is Test {
         receiver.allowlistSender(address(sender), true);
     }
 
+    function bytes32ToHexString(bytes32 _bytes32) internal pure returns (string memory) {
+        bytes memory hexString = new bytes(64);
+        for (uint i = 0; i < 32; i++) {
+            uint8 currentByte = uint8(_bytes32[i]);
+            uint8 nibble1 = currentByte / 16;
+            uint8 nibble2 = currentByte % 16;
+            hexString[2*i] = nibble1 > 9 ? bytes1(87 + nibble1) : bytes1(48 + nibble1);
+            hexString[2*i + 1] = nibble2 > 9 ? bytes1(87 + nibble2) : bytes1(48 + nibble2);
+        }
+        return string(hexString);
+    }
+
+
     function bytes32ToString(
         bytes32 _bytes32
     ) internal pure returns (string memory) {
@@ -70,19 +83,19 @@ contract SenderReceiverTest is Test {
         // Fetches recorded logs to check for specific events and their outcomes.
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 msgExecutedSignature = keccak256(
-            "MessageExecuted(bytes32, uint64, address, bytes32)"
+            "MessageExecuted(bytes32,uint64,address,bytes32)"
         );
 
         for (uint i = 0; i < logs.length; i++) {
             if (logs[i].topics[0] == msgExecutedSignature) {
-                (bytes32 messageId, , , bytes32 result) = abi.decode(
+                (bytes32 messageId,,,bytes32 result) = abi.decode(
                     logs[i].data,
                     (bytes32, uint64, address, bytes32)
                 );
                 console.log(
-                    "MessageExecuted event: messageId=%s, result=%s",
-                    bytes32ToString(messageId),
-                    bytes32ToString(result)
+                    "MessageExecuted event: messageId=%s,result=%s",
+                    bytes32ToHexString(messageId),
+                    bytes32ToHexString(result)
                 );
             }
         }

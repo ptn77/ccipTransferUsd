@@ -227,7 +227,7 @@ contract TransferUSDCTest is Test {
 
     /// @dev Helper function to simulate sending a message from Sender to Receiver.
     /// @param iterations The variable to simulate varying loads in the message.
-    function sendMessage(uint256 iterations, bytes memory extraArgs) private returns (uint64 rgasUsed) {
+    function sendMessage(uint256 iterations, bytes memory extraArgs) private returns (uint256 rgasUsed) {
         console.log("Sending message to ccipReceive through Sender contract to estimate gas...");
         
         vm.recordLogs(); // Starts recording logs to capture events.
@@ -235,6 +235,7 @@ contract TransferUSDCTest is Test {
         encodeExtraArgs = new EncodeExtraArgs();
 
         uint256 gasLimit = 500_000;
+        rgasUsed = 266188; //minimum gas usage from test_SendReceiveMin() (gas: 266188)
         extraArgs = encodeExtraArgs.encode(gasLimit);
         console.logBytes(extraArgs);
 
@@ -264,26 +265,47 @@ contract TransferUSDCTest is Test {
         // Fetches recorded logs to check for specific events and their outcomes.
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 msgExecutedSignature = keccak256(
-            "MessageExecuted(bytes32, uint64, address, bytes32)"
+            "MessageExecuted(bytes32,uint64,address,bytes32)"
         );
-        console.log("MessageExecuted hex string: ", bytes32ToHexString(msgExecutedSignature));
+        console.logBytes(abi.encode(msgExecutedSignature));
+        //ccipReceive
+        bytes32 ccipReceiveSignature = keccak256(
+            "ccipReceive(struct{bytes32,uint64,bytes,bytes,struct{address,uint256}[]})"
+        );
+        console.logBytes(abi.encodePacked(ccipReceiveSignature));
+
         for (uint i = 0; i < logs.length; i++) {
             /*//emit MessageExecuted(messageId: 0xaf12d7454f7430341fccf12f5baa51b5cf278c056d9b1ada582db0c15365f031, sourceChainSelector: 16015286601757825753 [1.601e19], offRamp: 0x1c71f141b4630EBE52d6aF4894812960abE207eB, calldataHash: 0x12d7022aefa4ae80dfde4473ef9700ca401e9daa3478a6b806a9905bbdfe1f9b)
             //│   └─ ← [Return] true, 0x, 5190 */
             console.log(bytes32ToHexString(logs[i].topics[0]));
+            console.logBytes(abi.encodePacked(logs[i].topics[0]));
             if (logs[i].topics[0] == msgExecutedSignature) {
-            //if(i == 4) {
-            (bytes32 messageId,,,bytes32 result) = abi.decode(
+                //if(i == 4) {
+                (bytes32 messageId,uint64 chainSelector,,bytes32 result) = abi.decode(
                     logs[i].data,
                     (bytes32, uint64, address, bytes32)
                 );
-                console.log("MessageExecuted: %s, %s",
-                    bytes32ToHexString(messageId),
+                console.log("MessageExecuted MessageID: %s",
+                    bytes32ToHexString(messageId)
+                );
+                console.log("MessageExecuted ChainSelector: %d",chainSelector);
+                console.log("MessageExecuted Result: %s",
+                    bytes32ToHexString(result)
+                );
+            }
+            if (logs[i].topics[0] == ccipReceiveSignature) {
+                //if(i == 4) {
+                (uint256 messageId, , bytes32 result) = abi.decode(
+                    logs[i].data,
+                    (uint256, address, bytes32)
+                );
+                console.log("ccipReceive: %d, %s",
+                    messageId,
                     bytes32ToHexString(result)
                 );
             }
         }
-        rgasUsed = 398601;
+        //rgasUsed = 398601; 
         console.log("Gas used for ccipReceive: ", rgasUsed);
         return rgasUsed;
     }
@@ -312,7 +334,7 @@ contract TransferUSDCTest is Test {
         sourceToken.approve(address(transferUSDCContract), amountToSend);
         assertEq(sourceToken.allowance(address(this), address(transferUSDCContract)), amountToSend);
 
-         uint64 rgasUsed;
+        uint256 rgasUsed;
         rgasUsed = sendMessage(amountToSend, extraArgs);
         
         console.log("Gas used for ccipReceive: ", rgasUsed);
@@ -322,7 +344,7 @@ contract TransferUSDCTest is Test {
         assertEq(vm.activeFork(), sourceFork);
         console.log("source Fork Chain ID:", block.chainid);
         //increase by 10%
-        uint64 adjustedGasLimit = rgasUsed + (rgasUsed * 10) / 100;
+        uint256 adjustedGasLimit = rgasUsed + (rgasUsed * 10) / 100;
 
         console.log("Adjusted Gas Limit: %d", adjustedGasLimit);
         tokensToSendDetails = new Client.EVMTokenAmount[](1);
