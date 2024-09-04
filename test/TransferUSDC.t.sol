@@ -10,12 +10,6 @@ import {TransferUSDC} from "../src/TransferUSDC.sol";
 import {Sender} from "../src/Sender.sol";
 import {Receiver} from "../src/Receiver.sol";
 import {EncodeExtraArgs} from "../script/EncodeExtraArgs.s.sol";
-//import {MockCCIPRouter} from "@chainlink/contracts-ccip/src/v0.8/ccip/test/mocks/MockRouter.sol";
-//import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
-//import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-//import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-//import {Helper} from "../script/Helper.sol";
-//import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /// @title A test suite for TransferUSDC contract to estimate token transfers and gas usage.
 contract TransferUSDCTest is Test {
@@ -157,16 +151,6 @@ contract TransferUSDCTest is Test {
         //Request LINK for transferUSDCContract on Ethereum Sepolia
         ccipLocalSimulatorFork.requestLinkFromFaucet(address(transferUSDCContract), 3 ether);
         console.log("Balance of link on source chain TransferUSDC contract address:", address(transferUSDCContract), link.balanceOf(address(transferUSDCContract)));
-        //Do we need LINK in our current "this" address? Comment out for now
-        //ccipLocalSimulatorFork.requestLinkFromFaucet(address(this), 3 ether);
-        //console.log("Balance of link on ethereum sepolia in this address:", address(this), link.balanceOf(address(this)));
-        
-        //We should not need to set the allowance for the router on eth sepolia since the TransferUSDC contract will approve the router
-        //console.log("Set allowance on ethereum sepolia router %s for spending USDC = %d.", sourceNetworkDetails.routerAddress, amountToSend);
-        //Drip some USDC for the TransferUSDC contract? or for this address and set approve for the TransferUSDC contract to spend on "this" address behalf 
-        //in prepareScenario() function 
-        //sourceToken.approve(sourceNetworkDetails.routerAddress, amountToSend);
-        //sourceToken.allowance(address(this), sourceNetworkDetails.routerAddress);
         
         // Configure the transferUSDCContract contract to allow transactions to be sent to destination chain
         transferUSDCContract.allowlistDestinationChain(destChainSelector, true);
@@ -179,9 +163,6 @@ contract TransferUSDCTest is Test {
         destinationNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid); 
         assertEq(destinationNetworkDetails.chainSelector, destChainSelector); //Sanity check: Arbitrum Sepolia chain selector should be (uint64 = 3478487238524512106;)
 
-        //destToken = new BurnMintERC677("USDC Token", "USDC", 6, 10**27); 
-        //destToken = BurnMintERC677(usdcArbitrumSepolia);
-        //destToken = BurnMintERC677Helper(usdcArbitrumSepolia);
         destToken = BurnMintERC677Helper(tokenDestinationAddress); //We are using the ccipBnM in place of USDC address for testing due to possible limit on drip for USDC.
      
         balanceOfBobBefore = destToken.balanceOf(bob);
@@ -238,18 +219,6 @@ contract TransferUSDCTest is Test {
         rgasUsed = 266188; //minimum gas usage from test_SendReceiveMin() (gas: 266188)
         extraArgs = encodeExtraArgs.encode(gasLimit);
         console.logBytes(extraArgs);
-
-        //Not sure why the HW question is asking for the ccipReceive gas usage, since the TransferUSDC contract does not send message, only token.
-        //Perhaps, there is a ccipReceive function in the Token pool contract??
-        //EOAs cannot implement the ccipReceive function. 
-        //The router contract checks if the recipient is an EOA and, if so, transfers the tokens directly to the recipient's address.
-        //when sending 0, we get 5cf04449 which is CannotSendZeroTokens() from https://openchain.xyz/signatures?query=0x5cf04449
-        /*transferUSDCContract.transferUsdc(
-            destChainSelector,
-            bob,
-            1,
-            extraArgs                //ExtraArgs gas_limit
-        );*/
 
         //Using the Sender.sol example to get the ccipReceive gas usage instead
         sender.sendMessagePayLINK(
@@ -368,13 +337,6 @@ contract TransferUSDCTest is Test {
             uint256 amountToSend,
             bytes memory extraArgs
         ) = prepareScenario();
-
-
-        //if (network == "avalanche-fuji"){
-        //    transferUSDCContract.transferUsdc(avalancheFujiFork.chainSelector, bob, tokensToSendDetails[0].amount, adjustedGasLimit);
-        //    ccipLocalSimulatorFork.switchChainAndRouteMessage(sourceFork);
-        //}
-        //else{
 
         vm.selectFork(sourceFork);
         assertEq(vm.activeFork(), sourceFork);

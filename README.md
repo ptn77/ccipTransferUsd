@@ -1,9 +1,19 @@
 Day 3 Homework
 
+Needed in .env file to run the TransferUSDC.t.sol test:
+SOURCE_NETWORK = "ETHEREUM_SEPOLIA_RPC_URL"
+DEST_NETWORK = "ARBITRUM_SEPOLIA_RPC_URL"
+TOKEN_SOURCE_ADDRESS = "ccipBnMEthereumSepolia"
+TOKEN_DESTINATION_ADDRESS = "ccipBnMArbitrumSepolia"
+CHAIN_SOURCE_ID = 16015286601757825753
+CHAIN_DESTINATION_ID = 3478487238524512106
+
+Then run: forge test -vvv
+
 TransferUSDC.sol contract does not send messages, only Token.
 When the recipient is an EOA, the CCIP router contract on the destination chain handles the token transfer directly, as EOAs cannot implement the ccipReceive function. The router contract checks if the recipient is an EOA and, if so, transfers the tokens directly to the recipient's address.
 
-Not sure why the HW is asking for the gas consumption of ccipReceive function since we were testing using an EOA as the recipient. Added the Send and Receive contracts with ExtraArgs gas_limit set to 500_000 to run the SendReceive.t.sol test for the gas usages intead, but the "MessageExecuted(bytes32, uint64, address, bytes32)" did not match the vm logs for some reason. The minimum gas usage of [PASS] test_SendReceiveMin() (gas: 266188)
+Not sure why the HW is asking for the gas consumption of ccipReceive function since we were testing using an EOA as the recipient. Added the Send and Receive contracts with ExtraArgs gas_limit set to 500_000 to run the SendReceive.t.sol test for the gas usages instead. The "MessageExecuted(bytes32,uint64,address,bytes32)" match the vm logs when space removed in param list. The minimum gas usage of [PASS] test_SendReceiveMin() (gas: 266188)
 Logs:
   0x97a657c9000000000000000000000000000000000000000000000000000000000007a120
   MessageExecuted event: messageId=5ee0f5a3b2c5908c9e70f892738571852b33e9c1694d8bfbbb0986acd18c5e28,result=217a714167eeb29633867facc69b83fa4664e73ee5098437ead57b94d95f803f
@@ -18,9 +28,13 @@ MessageExecuted(bytes32,uint64,address,bytes32)
 event MessageExecuted(bytes32 messageId, uint64 sourceChainSelector, address offRamp, bytes32 calldataHash);
 
 ccipReceive(Any2EVMMessage({ messageId: 0x6a65840544e41ecc70d200eddc9258bbe29232b202d154595d93fc1d43601bf3, sourceChainSelector: 16015286601757825753 [1.601e19], sender: 0x000000000000000000000000f62849f9a0b5bf2913b396098f7c7019b51a820a, data: 0x0000000000000000000000000000000000000000000000000000000000000064, destTokenAmounts: [] }))
-Still need to figure out how to get token contract of the USDC on Eth Sepolia and Arb Sepolia forks for testing TransferUSDC.
-
+Token contract of the USDC on Eth Sepolia and Arb Sepolia forks for testing TransferUSDC:
+    address constant usdcEthereumSepolia = 
+        0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+    address constant usdcArbitrumSepolia =
+        0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d; //??Not sure if this is correct
 Token Pool Contract and ccipReceive (Is this correct for USDC tokens?)
+
 In this process:
 
 The token pool contract on the destination chain will typically have a ccipReceive function or an equivalent function that processes the message received via CCIP. This function handles the minting of new tokens on the destination chain based on the information passed from the source chain.
