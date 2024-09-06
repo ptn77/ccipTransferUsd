@@ -135,3 +135,75 @@ Ran 2 test suites in 10.69s (10.68s CPU time): 4 tests passed, 0 failed, 0 skipp
     ├─ [0] console::log("9b877de93ea9895756e337442c657f95a34fc68e7eb988bdfa693d5be83016b6") [staticcall]
     │   └─ ← [Stop] 
   
+  forge test --gas-report
+[⠒] Compiling...
+[⠒] Compiling 1 files with Solc 0.8.20
+[⠢] Solc 0.8.20 finished in 5.05s
+Compiler run successful!
+
+Ran 3 tests for test/SendReceive.t.sol:SenderReceiverTest
+[PASS] test_SendReceiveAverage() (gas: 356293)
+[PASS] test_SendReceiveMax() (gas: 365568)
+[PASS] test_SendReceiveMin() (gas: 346708)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 7.80ms (5.44ms CPU time)
+
+Ran 1 test for test/TransferUSDC.t.sol:TransferUSDCTest
+[PASS] test_SendReceive1USDC() (gas: 1272411)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 15.60s (11.89s CPU time)
+| lib/chainlink-local/src/ccip/CCIPLocalSimulatorFork.sol:CCIPLocalSimulatorFork contract |                 |        |        |        |         |
+|-----------------------------------------------------------------------------------------|-----------------|--------|--------|--------|---------|
+| Deployment Cost                                                                         | Deployment Size |        |        |        |         |
+| 3434353                                                                                 | 15141           |        |        |        |         |
+| Function Name                                                                           | min             | avg    | median | max    | # calls |
+| getNetworkDetails                                                                       | 3216            | 3216   | 3216   | 3216   | 2       |
+| requestLinkFromFaucet                                                                   | 56178           | 67578  | 73278  | 73278  | 3       |
+| switchChainAndRouteMessage                                                              | 150443          | 160991 | 160991 | 171540 | 2       |
+
+
+| lib/chainlink-local/src/ccip/Register.sol:Register contract |                 |      |        |       |         |
+|-------------------------------------------------------------|-----------------|------|--------|-------|---------|
+| Deployment Cost                                             | Deployment Size |      |        |       |         |
+| 0                                                           | 0               |      |        |       |         |
+| Function Name                                               | min             | avg  | median | max   | # calls |
+| getNetworkDetails                                           | 1435            | 7149 | 11435  | 11435 | 7       |
+
+
+| script/EncodeExtraArgs.s.sol:EncodeExtraArgs contract |                 |     |        |     |         |
+|-------------------------------------------------------|-----------------|-----|--------|-----|---------|
+| Deployment Cost                                       | Deployment Size |     |        |     |         |
+| 118027                                                | 331             |     |        |     |         |
+| Function Name                                         | min             | avg | median | max | # calls |
+| encode                                                | 729             | 729 | 729    | 729 | 5       |
+
+
+| src/Receiver.sol:Receiver contract |                 |       |        |       |         |
+|------------------------------------|-----------------|-------|--------|-------|---------|
+| Deployment Cost                    | Deployment Size |       |        |       |         |
+| 616327                             | 3004            |       |        |       |         |
+| Function Name                      | min             | avg   | median | max   | # calls |
+| allowlistSender                    | 46420           | 46420 | 46420  | 46420 | 4       |
+| allowlistSourceChain               | 46236           | 46236 | 46236  | 46236 | 4       |
+| supportsInterface                  | 389             | 414   | 427    | 427   | 12      |
+
+
+| src/Sender.sol:Sender contract |                 |        |        |        |         |
+|--------------------------------|-----------------|--------|--------|--------|---------|
+| Deployment Cost                | Deployment Size |        |        |        |         |
+| 810496                         | 3724            |        |        |        |         |
+| Function Name                  | min             | avg    | median | max    | # calls |
+| allowlistDestinationChain      | 46257           | 46257  | 46257  | 46257  | 4       |
+| sendMessagePayLINK             | 83785           | 113493 | 98026  | 174135 | 4       |
+
+
+| src/TransferUSDC.sol:TransferUSDC contract |                 |        |        |        |         |
+|--------------------------------------------|-----------------|--------|--------|--------|---------|
+| Deployment Cost                            | Deployment Size |        |        |        |         |
+| 999185                                     | 4947            |        |        |        |         |
+| Function Name                              | min             | avg    | median | max    | # calls |
+| allowlistDestinationChain                  | 46213           | 46213  | 46213  | 46213  | 1       |
+| transferUsdc                               | 260903          | 260903 | 260903 | 260903 | 1       |
+
+
+
+
+Ran 2 test suites in 15.61s (15.60s CPU time): 4 tests passed, 0 failed, 0 skipped (4 total tests)
